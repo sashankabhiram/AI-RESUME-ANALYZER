@@ -1,0 +1,5 @@
+Flask
+pdfplumber
+reportlab
+groq
+python-dotenv

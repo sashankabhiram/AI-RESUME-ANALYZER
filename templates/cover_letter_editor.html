@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Cover Letter Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- html2pdf.js for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .editor-box {
+            line-height: 1.6;
+            outline: none;
+            min-height: 600px;
+        }
+        .editor-box p {
+            margin-bottom: 1.5rem;
+        }
+        .highlight {
+            background-color: #fef08a; /* yellow-200 */
+            padding: 0 4px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body class="h-screen overflow-hidden flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white border-b px-6 py-4 flex items-center justify-between z-10">
+        <div class="flex items-center gap-3">
+            <span class="text-2xl">✉️</span>
+            <h1 class="text-xl font-semibold text-slate-800">AI Cover Letter Editor</h1>
+        </div>
+        <a href="/" class="text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors">← Back to Analyzer</a>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="flex flex-1 overflow-hidden">
+        
+        <!-- Left Panel: Inputs -->
+        <div class="w-1/3 bg-white border-r overflow-y-auto p-6 flex flex-col gap-5">
+            <!-- Resume text removed as requested -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Target Job Description</label>
+                <textarea id="jdInput" rows="6" class="w-full p-3 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Paste the job description here..."></textarea>
+            </div>
+            <div class="flex gap-4">
+                <div class="flex-1">
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Company Name</label>
+                    <input type="text" id="companyInput" class="w-full p-3 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g. Google">
+                </div>
+                <div class="flex-1">
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Job Title</label>
+                    <input type="text" id="titleInput" class="w-full p-3 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g. Software Engineer">
+                </div>
+            </div>
+            
+            <button id="generateBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg shadow-md transition-colors mt-2 flex items-center justify-center gap-2">
+                <span>✨ Generate Cover Letter</span>
+            </button>
+            
+            <div id="loadingIndicator" class="hidden text-center text-sm text-slate-500 mt-2">
+                Generating your personalized letter... this takes a few seconds.
+            </div>
+        </div>
+
+        <!-- Right Panel: Editor -->
+        <div class="w-2/3 bg-slate-50 overflow-y-auto p-8 pb-32">
+            
+            <!-- Standard Letter Format Box (Max width 650px) -->
+            <div id="printArea" class="bg-white shadow-lg rounded-sm w-full max-w-[650px] mx-auto min-h-[850px] p-12 text-slate-800">
+                <div id="editor" class="editor-box" contenteditable="true">
+                    <h2>Cover Letter</h2>
+                    <p class="text-slate-400 italic mt-4">Your generated cover letter will appear here. You can edit this text directly.</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Bottom Status Bar -->
+    <div class="fixed bottom-0 right-0 w-2/3 bg-white border-t border-l px-6 py-4 flex items-center justify-between shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <div class="flex items-center gap-6">
+            <div class="flex items-center gap-2">
+                <span class="text-sm font-medium text-slate-500">Words:</span>
+                <span id="wordCount" class="text-sm font-bold text-slate-700">0</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-sm font-medium text-slate-500">Lines:</span>
+                <span id="lineCount" class="text-sm font-bold text-slate-700">0</span>
+            </div>
+            <div id="wordWarning" class="hidden text-xs font-semibold text-red-600 bg-red-50 px-2 py-1 rounded-full border border-red-200">
+                ⚠️ Exceeds 400 words
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-3">
+            <button id="copyBtn" class="px-4 py-2 text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+                Copy to Clipboard
+            </button>
+            <button id="pdfBtn" class="px-4 py-2 text-sm font-semibold text-white bg-slate-800 hover:bg-slate-900 rounded-lg transition-colors shadow-sm">
+                Export to PDF
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const editor = document.getElementById('editor');
+        const wordCountEl = document.getElementById('wordCount');
+        const lineCountEl = document.getElementById('lineCount');
+        const wordWarning = document.getElementById('wordWarning');
+
+        // Dynamic Counters
+        function updateCounters() {
+            const text = editor.innerText || "";
+            // Word count
+            const words = text.trim().split(/\s+/).filter(word => word.length > 0);
+            const wCount = words.length;
+            wordCountEl.textContent = wCount;
+            
+            if(wCount > 400) {
+                wordCountEl.classList.add('text-red-600');
+                wordWarning.classList.remove('hidden');
+            } else {
+                wordCountEl.classList.remove('text-red-600');
+                wordWarning.classList.add('hidden');
+            }
+
+            // Line count
+            const lines = text.split('\n').filter(line => line.trim().length > 0);
+            lineCountEl.textContent = lines.length;
+        }
+
+        editor.addEventListener('input', updateCounters);
+
+        // Highlight placeholders [Like This]
+        function highlightPlaceholders(htmlString) {
+            return htmlString.replace(/\[([^\]]+)\]/g, '<span class="highlight">[$1]</span>');
+        }
+
+        // Generate Letter
+        document.getElementById('generateBtn').addEventListener('click', async () => {
+            const jd = document.getElementById('jdInput').value;
+            const company = document.getElementById('companyInput').value;
+            const title = document.getElementById('titleInput').value;
+
+            if(!jd) {
+                alert("Please provide the Target Job Description.");
+                return;
+            }
+
+            document.getElementById('generateBtn').disabled = true;
+            document.getElementById('loadingIndicator').classList.remove('hidden');
+
+            try {
+                const response = await fetch('/api/generate-cover-letter', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ resume: "", job_description: jd, company_name: company, job_title: title })
+                });
+
+                const data = await response.json();
+                
+                if(data.error) {
+                    alert(data.error);
+                } else {
+                    const rawHtml = data.cover_letter;
+                    editor.innerHTML = highlightPlaceholders(rawHtml);
+                    updateCounters();
+                }
+            } catch (err) {
+                alert("An error occurred while generating the letter.");
+                console.error(err);
+            } finally {
+                document.getElementById('generateBtn').disabled = false;
+                document.getElementById('loadingIndicator').classList.add('hidden');
+            }
+        });
+
+        // Copy to Clipboard
+        document.getElementById('copyBtn').addEventListener('click', () => {
+            navigator.clipboard.writeText(editor.innerText).then(() => {
+                const btn = document.getElementById('copyBtn');
+                btn.textContent = "Copied! ✓";
+                setTimeout(() => btn.textContent = "Copy to Clipboard", 2000);
+            });
+        });
+
+        // Export to PDF
+        document.getElementById('pdfBtn').addEventListener('click', () => {
+            const element = document.getElementById('printArea');
+            // Remove highlight classes for print so it looks clean
+            const spans = element.querySelectorAll('.highlight');
+            spans.forEach(span => {
+                span.classList.remove('highlight');
+                span.style.backgroundColor = 'transparent';
+            });
+
+            const opt = {
+                margin:       [0.5, 0.5, 0.5, 0.5],
+                filename:     'Cover_Letter.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                // Re-highlight if needed
+                editor.innerHTML = highlightPlaceholders(editor.innerHTML);
+            });
+        });
+        
+        updateCounters();
+    </script>
+</body>
+</html>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Resume Bullet Rewriter</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .rewrite-container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .output {
+            margin-top: 30px;
+            background: var(--bg-color);
+            padding: 25px;
+            border-radius: 12px;
+            border-left: 6px solid var(--primary-color);
+            border-top: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .output h2 {
+            margin-bottom: 15px;
+            color: var(--primary-color);
+        }
+
+        .output h3 {
+            margin-top: 20px;
+            margin-bottom: 8px;
+            color: var(--secondary-color);
+            font-size: 16px;
+        }
+
+        .output p {
+            margin-bottom: 15px;
+            color: var(--text-main);
+            line-height: 1.6;
+        }
+
+        .output ul {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        .output li {
+            color: var(--text-main);
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="/" class="nav-brand">
+            📄 ResumeAI
+        </a>
+        <div class="nav-links">
+            <a href="/">Analyzer</a>
+            <a href="/rewrite" class="btn-nav" style="background: var(--secondary-color);">Resume Rewriter</a>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <div class="container rewrite-container">
+            <h1 style="text-align:center; margin-bottom:30px; color:var(--secondary-color);">✍️ AI Resume Bullet Rewriter</h1>
+            
+            <form method="POST">
+                <textarea
+                    name="resume_point"
+                    placeholder="Enter a resume bullet point..."
+                    rows="6"
+                    required></textarea>
+                
+                <button type="submit">
+                    ✨ Rewrite with AI
+                </button>
+            </form>
+            
+            {% if rewritten_text %}
+            <div class="output ai-feedback" id="rewritten-output">
+                <h2>Improved Resume Bullet</h2>
+                {{ rewritten_text|safe }}
+            </div>
+            
+            <button onclick="copyToClipboard()" style="background: #e67e22; margin-top: 20px;">
+                📋 Copy Options to Clipboard
+            </button>
+            
+            <script>
+            function copyToClipboard() {
+                // Select ONLY the bullet point text, skipping the explanation
+                const bulletList = document.querySelector('#rewritten-output ul');
+                if (bulletList) {
+                    const textToCopy = bulletList.innerText;
+                    navigator.clipboard.writeText(textToCopy).then(() => {
+                        alert("Copied the improved bullet point to clipboard!");
+                    }).catch(err => {
+                        console.error("Failed to copy: ", err);
+                    });
+                } else {
+                    alert("Could not find the bullet point to copy.");
+                }
+            }
+            </script>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2026 AI Resume Analyzer. All rights reserved.</p>
+    </footer>
+
+</body>
+</html>

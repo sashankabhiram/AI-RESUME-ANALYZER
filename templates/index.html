@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Resume Analyzer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="/" class="nav-brand">
+            📄 ResumeAI
+        </a>
+        <div class="nav-links">
+            <a href="/">Analyzer</a>
+            <a href="/editor">Cover Letter Editor</a>
+            <a href="/rewrite" class="btn-nav">Resume Rewriter</a>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1>Land Your Dream Job Faster</h1>
+            <p>Upload your resume and get an instant ATS score, AI feedback, interview prep, and a personalized learning roadmap.</p>
+        </section>
+
+        <!-- Main Container -->
+        <div class="container" style="margin-top: -30px; position: relative; z-index: 10;">
+            <form action="/upload" method="POST" enctype="multipart/form-data">
+                <label>Select Resume (PDF)</label>
+                <input type="file" name="resume" accept=".pdf" required>
+
+                <label>Job Description</label>
+                <textarea
+                    name="job_description"
+                    rows="6"
+                    placeholder="Paste the Job Description here..."
+                    required></textarea>
+                    
+                <div style="display: flex; gap: 15px; margin-top: 15px;">
+                    <div style="flex: 1;">
+                        <label>Company Name (Optional)</label>
+                        <input type="text" name="company_name" placeholder="e.g. Google" style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label>Target Job Title (Optional)</label>
+                        <input type="text" name="job_title" placeholder="e.g. Software Engineer" style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px;">
+                    </div>
+                </div>
+
+                <button type="submit">
+                    🚀 Analyze Resume & Generate Cover Letter
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2026 AI Resume Analyzer. All rights reserved.</p>
+    </footer>
+
+</body>
+</html>
