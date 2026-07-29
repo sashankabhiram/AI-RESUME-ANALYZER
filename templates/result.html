@@ -1,21 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resume Analysis Results</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
+
 <body>
 
     <!-- Navbar -->
     <nav class="navbar">
         <a href="/" class="nav-brand">
-            📄 ResumeAI
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="var(--primary-color)" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L2 7L12 12L22 7L12 2Z" />
+                <path d="M2 17L12 22L22 17M2 12L12 17L22 12" stroke="var(--primary-color)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            ResumeAI
         </a>
         <div class="nav-links">
-            <a href="/">Analyzer</a>
-            <a href="/rewrite" class="btn-nav">Resume Rewriter</a>
+            <a href="/rewrite" class="pill-btn-green">Resume Rewriter</a>
         </div>
     </nav>
 
@@ -24,16 +29,23 @@
 
             <div class="score-card">
                 <h2>ATS Match Score</h2>
-                <h1>{{ score }}%</h1>
-                <h3 style="margin-top:10px;">
+                
+                <div class="meter-container">
+                    <svg class="circular-meter" viewBox="0 0 100 100">
+                        <circle class="meter-bg" cx="50" cy="50" r="45"></circle>
+                        <circle class="meter-progress" cx="50" cy="50" r="45" id="score-meter-fill" data-score="{{ score }}"></circle>
+                    </svg>
+                    <div class="meter-text">
+                        <span class="meter-value" id="score-meter-text">0</span><span class="meter-percent">%</span>
+                    </div>
+                </div>
+
+                <h3 style="margin-top:20px;">
                     Resume Strength: {{ strength }}
                 </h3>
                 <h3 style="margin-top:5px; opacity:0.9; font-size:18px;">
                     ⭐ Resume Rating: {{ rating }}/5
                 </h3>
-                <div class="progress">
-                    <div class="progress-bar" id="overall-progress-bar" data-progress="{{ score }}"></div>
-                </div>
             </div>
 
             <!-- Tabs Navigation -->
@@ -47,7 +59,7 @@
             <!-- Tab 1: Overview -->
             <div id="tab-overview" class="tab-content active">
                 <div class="result-section">
-                    <h2>💬 Overall Feedback</h2>
+                    <h2> Overall Feedback</h2>
                     <div class="ai-feedback">
                         {{ feedback|safe }}
                     </div>
@@ -57,54 +69,41 @@
             <!-- Tab 2: Skills & Career Fit -->
             <div id="tab-skills" class="tab-content">
                 <div class="result-section">
-                    <h2>💡 AI Resume Insights: Career Fit</h2>
+                    <h2> AI Resume Insights: Career Fit</h2>
                     <div class="career-fit-container">
                         {% if career_fit %}
-                            {% for job in career_fit %}
-                            <div class="career-bar-row">
-                                <div class="career-info">
-                                    <span class="career-role">{{ job.role }}</span>
-                                    <span class="career-percent">{{ job.match_percentage }}%</span>
-                                </div>
-                                <div class="career-progress">
-                                    <div class="career-progress-fill" data-progress="{{ job.match_percentage }}"></div>
-                                </div>
+                        {% for job in career_fit %}
+                        <div class="career-bar-row">
+                            <div class="career-info">
+                                <span class="career-role">{{ job.role }}</span>
+                                <span class="career-percent">{{ job.match_percentage }}%</span>
                             </div>
-                            {% endfor %}
+                            <div class="career-progress">
+                                <div class="career-progress-fill" data-progress="{{ job.match_percentage }}"></div>
+                            </div>
+                        </div>
+                        {% endfor %}
                         {% else %}
-                            <p>Could not generate career fit data.</p>
+                        <p>Could not generate career fit data.</p>
                         {% endif %}
                     </div>
                 </div>
 
-                <div class="result-section">
-                    <h2>✅ Matched Skills</h2>
-                    {% if matched_skills %}
-                    <ul class="skill-list">
-                        {% for skill in matched_skills %}
-                        <li><span class="match">✅</span> {{ skill }}</li>
-                        {% endfor %}
-                    </ul>
-                    {% else %}
-                    <p>No matched skills found.</p>
-                    {% endif %}
-                </div>
+
             </div>
 
             <!-- Tab 3: Next Steps -->
             <div id="tab-next" class="tab-content">
-                {% if interview_questions %}
                 <div class="result-section">
-                    <h2>🎤 AI Interview Prep</h2>
+                    <h2> AI Interview Questions</h2>
                     <div class="ai-feedback">
                         {{ interview_questions|safe }}
                     </div>
                 </div>
-                {% endif %}
 
                 {% if learning_roadmap %}
                 <div class="result-section">
-                    <h2>📚 AI Learning Roadmap</h2>
+                    <h2> AI Learning Roadmap</h2>
                     <div class="ai-feedback">
                         {{ learning_roadmap|safe }}
                     </div>
@@ -115,22 +114,23 @@
             <!-- Tab 4: Cover Letter -->
             <div id="tab-coverletter" class="tab-content">
                 <div class="result-section">
-                    <h2>✉️ AI Cover Letter</h2>
+                    <h2> AI Cover Letter</h2>
                     {% if cover_letter %}
                     <div class="ai-feedback">
                         {{ cover_letter|safe }}
                     </div>
                     {% else %}
                     <div class="ai-feedback">
-                        <p>No cover letter generated. Please provide a Company Name and Job Title on the home page to generate one!</p>
+                        <p>No cover letter generated. Please provide a Company Name and Job Title on the home page to
+                            generate one!</p>
                     </div>
                     {% endif %}
                 </div>
             </div>
 
-            <div style="display: flex; gap: 15px; margin-top: 40px;">
-                <a href="/" style="flex: 1; text-decoration: none;">
-                    <button style="background: #e2e8f0; color: #1e293b; margin-top:0;">Analyze Another</button>
+            <div style="display: flex; gap: 15px; margin-top: 40px; justify-content: center;">
+                <a href="/" class="pill-btn-green" style="flex: 1; max-width: 300px; text-decoration: none; text-align:center;">
+                    Analyze Another
                 </a>
             </div>
 
@@ -146,12 +146,13 @@
     <div class="chat-widget">
         <div class="chat-window" id="chat-window">
             <div class="chat-header">
-                <span>💬 AI Recruiter Chat</span>
+                <span> AI Recruiter Chat</span>
                 <span class="close-chat" id="close-chat">&times;</span>
             </div>
             <div class="chat-body" id="chat-box">
                 <div class="chat-msg-ai">
-                    <strong>AI Recruiter:</strong> Hello! I've analyzed your resume. What would you like to know? (e.g., "Why is my ATS score low?")
+                    <strong>AI Recruiter:</strong> Hello! I've analyzed your resume. What would you like to know? (e.g.,
+                    "Why is my ATS score low?")
                 </div>
             </div>
             <div class="chat-input-area">
@@ -160,7 +161,7 @@
             </div>
         </div>
         <div class="chat-toggle-btn" id="chat-toggle-btn">
-            💬
+
         </div>
     </div>
 
@@ -168,12 +169,46 @@
 
 <script>
     // Apply widths to progress bars (Fixes IDE linting errors for inline Jinja styles)
-    document.addEventListener("DOMContentLoaded", function() {
-        const overallBar = document.getElementById('overall-progress-bar');
-        if (overallBar) {
-            overallBar.style.width = overallBar.getAttribute('data-progress') + '%';
-        }
+    document.addEventListener("DOMContentLoaded", function () {
         
+        // Animate circular ATS Score meter
+        const meterFill = document.getElementById('score-meter-fill');
+        const meterText = document.getElementById('score-meter-text');
+        
+        if (meterFill && meterText) {
+            const score = parseInt(meterFill.getAttribute('data-score')) || 0;
+            const circumference = 283; // 2 * Math.PI * 45
+            
+            // Calculate offset (0 is full, 283 is empty)
+            const offset = circumference - (score / 100) * circumference;
+            
+            // Trigger stroke animation
+            setTimeout(() => {
+                meterFill.style.strokeDashoffset = offset;
+                
+                // Animate number count-up
+                let current = 0;
+                const duration = 1500;
+                const interval = 30;
+                const step = (score / (duration / interval));
+                
+                if(score > 0) {
+                    const counter = setInterval(() => {
+                        current += step;
+                        if (current >= score) {
+                            current = score;
+                            clearInterval(counter);
+                        }
+                        meterText.textContent = Math.round(current);
+                    }, interval);
+                } else {
+                    meterText.textContent = 0;
+                }
+                
+            }, 200);
+        }
+
+        // Animate Career Fit progress bars
         document.querySelectorAll('.career-progress-fill').forEach(el => {
             el.style.width = el.getAttribute('data-progress') + '%';
         });
@@ -209,23 +244,23 @@
         chatWindow.style.display = 'none';
     });
 
-    document.getElementById('chat-send').addEventListener('click', async function() {
+    document.getElementById('chat-send').addEventListener('click', async function () {
         const input = document.getElementById('chat-input');
         const question = input.value.trim();
         const chatBox = document.getElementById('chat-box');
-        
+
         if (!question) return;
-        
+
         // Add user message
         chatBox.innerHTML += `
             <div class="chat-msg-user">
                 <strong>You:</strong> <br/> ${question}
             </div>
         `;
-        
+
         input.value = '';
         chatBox.scrollTop = chatBox.scrollHeight;
-        
+
         // Add loading indicator
         const loadingId = 'loading-' + Date.now();
         chatBox.innerHTML += `
@@ -234,7 +269,7 @@
             </div>
         `;
         chatBox.scrollTop = chatBox.scrollHeight;
-        
+
         try {
             const response = await fetch('/chat', {
                 method: 'POST',
@@ -243,11 +278,11 @@
                 },
                 body: JSON.stringify({ question: question })
             });
-            
+
             const data = await response.json();
-            
+
             document.getElementById(loadingId).remove();
-            
+
             if (data.error) {
                 chatBox.innerHTML += `
                     <div class="chat-msg-error">
@@ -269,15 +304,16 @@
                 </div>
             `;
         }
-        
+
         chatBox.scrollTop = chatBox.scrollHeight;
     });
-    
+
     // Allow enter key to send
-    document.getElementById('chat-input').addEventListener('keypress', function(e) {
+    document.getElementById('chat-input').addEventListener('keypress', function (e) {
         if (e.key === 'Enter') {
             document.getElementById('chat-send').click();
         }
     });
 </script>
+
 </html>

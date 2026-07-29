@@ -1,11 +1,13 @@
-from flask import Flask, render_template, request, send_file, jsonify
+from flask import Flask, render_template, request, send_file, jsonify, session
 import os
+import io
+import uuid
 import pdfplumber
+import concurrent.futures
 
 from reportlab.platypus import SimpleDocTemplate, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 
-from utils.skill_extractor import extract_skills
 from utils.matcher import calculate_match
 from utils.ai_feedback import generate_ai_feedback
 from utils.ai_rewriter import rewrite_resume_point
@@ -16,14 +18,10 @@ from utils.ai_career_fit import generate_career_fit
 from utils.ai_chat import generate_chat_response
 
 app = Flask(__name__)
+app.secret_key = os.urandom(24)
 
-UPLOAD_FOLDER = "static/uploads"
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-# Store latest analysis
-latest_result = {}
+# Store latest analysis per user
+user_results = {}
 
 
 @app.route("/")
@@ -44,13 +42,10 @@ def upload():
 
     job_description = request.form.get("job_description", "")
 
-    filepath = os.path.join(app.config["UPLOAD_FOLDER"], resume.filename)
-    resume.save(filepath)
-
     text = ""
 
     try:
-        with pdfplumber.open(filepath) as pdf:
+        with pdfplumber.open(io.BytesIO(resume.read())) as pdf:
             for page in pdf.pages:
                 page_text = page.extract_text()
 
@@ -60,12 +55,9 @@ def upload():
     except Exception as e:
         return f"Error reading PDF: {e}"
 
-    # Extract skills
-    resume_skills = extract_skills(text)
-
-    # Calculate ATS Score
-    score, matched_skills, missing_skills = calculate_match(
-        resume_skills,
+    # Calculate ATS Score and Extract Skills dynamically
+    score, matched_skills, missing_skills, resume_skills = calculate_match(
+        text,
         job_description
     )
 
@@ -83,48 +75,35 @@ def upload():
     # Resume Rating
     rating = round((score / 100) * 5, 1)
 
-    # AI Feedback using Groq
-    feedback = generate_ai_feedback(
-        text,
-        job_description,
-        score
-    )
-    
-    # AI Interview Questions
-    interview_questions = generate_interview_questions(
-        text,
-        job_description
-    )
-
-    # AI Learning Roadmap
-    learning_roadmap = generate_learning_roadmap(
-        text,
-        job_description
-    )
-
     company_name = request.form.get("company_name", "")
     job_title = request.form.get("job_title", "")
 
-    cover_letter = ""
+    # Run AI generation tasks in parallel to reduce loading time
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        future_feedback = executor.submit(generate_ai_feedback, text, job_description, score)
+        future_interview = executor.submit(generate_interview_questions, text, job_description)
+        future_roadmap = executor.submit(generate_learning_roadmap, text, job_description)
+        future_career_fit = executor.submit(generate_career_fit, text)
+        
+        future_cover_letter = None
+        if company_name and job_title:
+            future_cover_letter = executor.submit(generate_cover_letter, text, job_description, company_name, job_title)
 
-    if company_name and job_title:
-        cover_letter = generate_cover_letter(
-            text,
-            job_description,
-            company_name,
-            job_title
-        )
+        feedback = future_feedback.result()
+        interview_questions = future_interview.result()
+        learning_roadmap = future_roadmap.result()
+        career_fit = future_career_fit.result()
+        cover_letter = future_cover_letter.result() if future_cover_letter else ""
 
     # Resume Statistics (Total & Matched skills)
     total_skills = len(resume_skills)
     matched_count = len(matched_skills)
 
-    # AI Career Fit
-    career_fit = generate_career_fit(text)
+    if "user_id" not in session:
+        session["user_id"] = str(uuid.uuid4())
+    user_id = session["user_id"]
 
-    global latest_result
-
-    latest_result = {
+    user_results[user_id] = {
         "text": text,
         "score": score,
         "matched_skills": matched_skills,
@@ -158,6 +137,9 @@ def upload():
 @app.route("/download")
 def download():
 
+    user_id = session.get("user_id")
+    latest_result = user_results.get(user_id) if user_id else None
+
     if not latest_result:
         return "No analysis available."
 
@@ -173,9 +155,7 @@ def download():
     elements.append(Paragraph(f"Resume Strength: {latest_result['strength']}", styles["Normal"]))
     elements.append(Paragraph(f"Resume Rating: {latest_result['rating']}/5", styles["Normal"]))
 
-    elements.append(Paragraph("Matched Skills", styles["Heading2"]))
-    for skill in latest_result["matched_skills"]:
-        elements.append(Paragraph(f"• {skill}", styles["Normal"]))
+
 
     elements.append(Paragraph("Overall Feedback", styles["Heading2"]))
     elements.append(Paragraph(latest_result["feedback"], styles["Normal"]))
@@ -219,6 +199,9 @@ def rewrite():
 
 @app.route("/chat", methods=["POST"])
 def chat():
+    user_id = session.get("user_id")
+    latest_result = user_results.get(user_id) if user_id else None
+
     if not latest_result or "text" not in latest_result:
         return jsonify({"error": "No resume context available. Please upload a resume first."}), 400
     

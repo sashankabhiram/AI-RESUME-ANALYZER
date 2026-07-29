@@ -10,7 +10,7 @@ client = Groq(
 
 def generate_chat_response(resume_text, score, question):
     prompt = f"""
-You are an AI Recruiter chatting with a candidate about their resume.
+You are an AI Recruiter analyzing a candidate's resume.
 
 Resume Text:
 {resume_text}
@@ -19,8 +19,10 @@ Current ATS Score: {score}%
 
 The candidate asks: "{question}"
 
-Answer the candidate's question specifically and only based on the provided resume text and their score.
-Be helpful, professional, and concise. Do NOT use markdown. Return plain text or simple HTML (like <br> for newlines if needed, but plain text is fine).
+Provide a direct, specific, and highly concise answer to the candidate's question based ONLY on the provided resume text and score. 
+CRITICAL RULE: LIMIT YOUR RESPONSE TO A MAXIMUM OF 2 SENTENCES. DO NOT EXCEED THIS LIMIT. Do not write paragraphs.
+Do not include any conversational filler, greetings, or generic advice. Answer dynamically and get straight to the point.
+Do NOT use markdown. Return plain text or simple HTML (like <br> for newlines if needed).
 """
 
     try:
@@ -33,7 +35,7 @@ Be helpful, professional, and concise. Do NOT use markdown. Return plain text or
                 }
             ],
             temperature=0.5,
-            max_tokens=300
+            max_tokens=80
         )
         return response.choices[0].message.content
     except Exception as e:

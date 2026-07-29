@@ -32,19 +32,19 @@ IMPORTANT: You MUST generate real, highly personalized insights based entirely o
 
 Here is an example of the EXACT HTML structure you must use (this example is for a fictional Chef, you must generate content relevant to the uploaded resume!):
 
-<h3>🚀 Short-Term Goals (0-1 Months)</h3>
+<h3> Short-Term Goals (0-1 Months)</h3>
 <ul>
 <li>Master basic knife skills and chopping techniques.</li>
 <li>Learn the 5 fundamental mother sauces.</li>
 </ul>
 
-<h3>📈 Medium-Term Goals (1-3 Months)</h3>
+<h3> Medium-Term Goals (1-3 Months)</h3>
 <ul>
 <li>Practice advanced plating and food presentation.</li>
 <li>Understand kitchen management and inventory.</li>
 </ul>
 
-<h3>📚 Recommended Resources</h3>
+<h3> Recommended Resources</h3>
 <ul>
 <li>Book: "The Food Lab" by J. Kenji López-Alt</li>
 <li>Course: Gordon Ramsay's MasterClass on Cooking</li>

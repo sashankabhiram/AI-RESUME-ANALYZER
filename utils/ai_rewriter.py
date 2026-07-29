@@ -48,7 +48,9 @@ Example of the EXACT HTML structure you must use (this example is for a fictiona
             max_tokens=500
         )
 
-        return response.choices[0].message.content
+        content = response.choices[0].message.content
+        content = content.replace("```html", "").replace("```", "").strip()
+        return content
 
     except Exception as e:
         return f"Error: {str(e)}"
