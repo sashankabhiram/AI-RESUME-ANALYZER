@@ -5,7 +5,7 @@ import uuid
 import pdfplumber
 import concurrent.futures
 
-from reportlab.platypus import SimpleDocTemplate, Paragraph
+from reportlab.platypus import SimpleDocTemplate, Paragraph, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet
 
 from utils.matcher import calculate_match
@@ -78,22 +78,22 @@ def upload():
     company_name = request.form.get("company_name", "")
     job_title = request.form.get("job_title", "")
 
-    # Run AI generation tasks in parallel to reduce loading time
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+    # Run AI generation tasks concurrently to speed up the process
+    with concurrent.futures.ThreadPoolExecutor() as executor:
         future_feedback = executor.submit(generate_ai_feedback, text, job_description, score)
         future_interview = executor.submit(generate_interview_questions, text, job_description)
         future_roadmap = executor.submit(generate_learning_roadmap, text, job_description)
-        future_career_fit = executor.submit(generate_career_fit, text)
+        future_career = executor.submit(generate_career_fit, text)
         
-        future_cover_letter = None
+        future_cover = None
         if company_name and job_title:
-            future_cover_letter = executor.submit(generate_cover_letter, text, job_description, company_name, job_title)
+            future_cover = executor.submit(generate_cover_letter, text, job_description, company_name, job_title)
 
         feedback = future_feedback.result()
         interview_questions = future_interview.result()
         learning_roadmap = future_roadmap.result()
-        career_fit = future_career_fit.result()
-        cover_letter = future_cover_letter.result() if future_cover_letter else ""
+        career_fit = future_career.result()
+        cover_letter = future_cover.result() if future_cover else ""
 
     # Resume Statistics (Total & Matched skills)
     total_skills = len(resume_skills)
@@ -144,41 +144,48 @@ def download():
         return "No analysis available."
 
     filename = "Resume_Analysis_Report.pdf"
+    pdf_buffer = io.BytesIO()
 
-    doc = SimpleDocTemplate(filename)
+    doc = SimpleDocTemplate(pdf_buffer)
     styles = getSampleStyleSheet()
 
     elements = []
 
-    elements.append(Paragraph("AI Resume Analyzer Report", styles["Title"]))
-    elements.append(Paragraph(f"ATS Score: {latest_result['score']}%", styles["Normal"]))
-    elements.append(Paragraph(f"Resume Strength: {latest_result['strength']}", styles["Normal"]))
-    elements.append(Paragraph(f"Resume Rating: {latest_result['rating']}/5", styles["Normal"]))
+    elements.append(Paragraph("AI Resume Analyzer - Your Preparation Kit", styles["Title"]))
 
+    # 1. Cover Letter (Page 1)
+    if latest_result.get("cover_letter"):
+        elements.append(Paragraph("Cover Letter", styles["Heading2"]))
+        cl_text = latest_result["cover_letter"]
+        # Clean HTML tags that ReportLab doesn't support
+        cl_text = cl_text.replace("<h2>", "<br/><br/><b>").replace("</h2>", "</b><br/>")
+        cl_text = cl_text.replace("<strong>", "<b>").replace("</strong>", "</b>")
+        cl_text = cl_text.replace("<p>", "").replace("</p>", "<br/><br/>")
+        elements.append(Paragraph(cl_text, styles["Normal"]))
+        
+        # Add Page Break if we have both cover letter and interview questions
+        if latest_result.get("interview_questions"):
+            elements.append(PageBreak())
+    else:
+        elements.append(Paragraph("Cover Letter: Not generated (Company Name or Job Title missing).", styles["Normal"]))
+        if latest_result.get("interview_questions"):
+            elements.append(PageBreak())
 
-
-    elements.append(Paragraph("Overall Feedback", styles["Heading2"]))
-    elements.append(Paragraph(latest_result["feedback"], styles["Normal"]))
-
-    if "interview_questions" in latest_result:
+    # 2. Interview Questions (Page 2)
+    if latest_result.get("interview_questions"):
         elements.append(Paragraph("AI Interview Questions", styles["Heading2"]))
         iq_text = latest_result["interview_questions"]
         iq_text = iq_text.replace("<h3>", "<br/><br/><b>").replace("</h3>", "</b><br/>")
         iq_text = iq_text.replace("<li>", "<br/>• ").replace("</li>", "")
         iq_text = iq_text.replace("<ol>", "").replace("</ol>", "").replace("<ul>", "").replace("</ul>", "")
+        iq_text = iq_text.replace("<strong>", "<b>").replace("</strong>", "</b>")
+        iq_text = iq_text.replace("<p>", "").replace("</p>", "<br/><br/>")
         elements.append(Paragraph(iq_text, styles["Normal"]))
 
-    if "learning_roadmap" in latest_result:
-        elements.append(Paragraph("AI Learning Roadmap", styles["Heading2"]))
-        lr_text = latest_result["learning_roadmap"]
-        lr_text = lr_text.replace("<h3>", "<br/><br/><b>").replace("</h3>", "</b><br/>")
-        lr_text = lr_text.replace("<li>", "<br/>• ").replace("</li>", "")
-        lr_text = lr_text.replace("<ol>", "").replace("</ol>", "").replace("<ul>", "").replace("</ul>", "")
-        elements.append(Paragraph(lr_text, styles["Normal"]))
-
     doc.build(elements)
-
-    return send_file(filename, as_attachment=True)
+    
+    pdf_buffer.seek(0)
+    return send_file(pdf_buffer, download_name=filename, as_attachment=True)
 
 @app.route("/rewrite", methods=["GET", "POST"])
 def rewrite():

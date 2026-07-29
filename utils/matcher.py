@@ -61,7 +61,12 @@ Return ONLY valid JSON exactly matching the structure below. Do not include any 
         
         data = json.loads(content)
         
-        score = int(data.get("score", 0))
+        score_val = data.get("score", 0)
+        if isinstance(score_val, str):
+            match_score = re.search(r'\d+', score_val)
+            score = int(match_score.group(0)) if match_score else 0
+        else:
+            score = int(score_val)
         matched = data.get("matched_skills", [])
         missing = data.get("missing_skills", [])
         resume_skills = data.get("resume_skills", [])
